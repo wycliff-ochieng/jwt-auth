@@ -35,3 +35,10 @@ func NewUser(firstname, lastname, email, password string) (*User, error) {
 		UpdatedAt: now,
 	}, nil
 }
+
+type UserResponse struct {
+	Firstname string
+	Lastname  string
+	Email     string
+	CreatedAt time.Time
+}
