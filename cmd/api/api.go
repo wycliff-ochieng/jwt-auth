@@ -43,5 +43,9 @@ func (s *APIServer) Run() {
 
 	postRouter := router.Methods("POST").Subrouter()
 	postRouter.HandleFunc("/register", uh.RegisterUser)
+
+	loginRouter := router.Methods("POST").Subrouter()
+	loginRouter.HandleFunc("/login", uh.Login)
+
 	http.ListenAndServe(s.addr, router)
 }
