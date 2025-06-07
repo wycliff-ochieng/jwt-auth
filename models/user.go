@@ -36,6 +36,10 @@ func NewUser(firstname, lastname, email, password string) (*User, error) {
 	}, nil
 }
 
+func (u *User) ComparePassword(password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+}
+
 type UserResponse struct {
 	Firstname string
 	Lastname  string
