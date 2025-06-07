@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	model "github.com/wycliff-ochieng/models"
 	"github.com/wycliff-ochieng/service"
 )
 
@@ -23,6 +24,12 @@ type RegisterReq struct {
 type LoginReq struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type AuthResponse struct {
+	User         *model.UserResponse
+	AccessToken  string
+	RefreshToken string
 }
 
 func NewAuthHandle(l *log.Logger, UServ *service.UserService) *AuthHandler {
@@ -73,5 +80,24 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "input is required", http.StatusExpectationFailed)
 		return
 	}
+
+	//authenticate user
+	tokens, user, err := h.UServ.Login(req.Email, req.Password)
+	if err == service.ErrInvalidPassword || err == service.ErrUserNotFound {
+		http.Error(w, "failed to be logged in", http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		http.Error(w, "something unexpected occurred", http.StatusInternalServerError)
+		return
+	}
+
+	//return response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(AuthResponse{
+		User:         user,
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+	})
 
 }
