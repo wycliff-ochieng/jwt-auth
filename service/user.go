@@ -1,10 +1,13 @@
 package service
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/wycliff-ochieng/database"
+
+	"github.com/wycliff-ochieng/internal"
 	model "github.com/wycliff-ochieng/models"
 )
 
@@ -13,7 +16,9 @@ type UserService struct {
 }
 
 var (
-	ErrEmailExists = errors.New("email already exists")
+	ErrEmailExists     = errors.New("email already exists")
+	ErrInvalidPassword = errors.New("incorrect password")
+	ErrUserNotFound    = errors.New("user not found")
 )
 
 func NewUserService(db database.DBInterface) UserService {
@@ -53,6 +58,51 @@ func (u UserService) Register(firstname string, lastname string, email string, p
 	}, nil
 }
 
-func (u *UserService) Login(email string, password string) (*model.LoginResqponse, error) {
-	u.db.QueryRow("SELECT firstname ")
+func (u *UserService) Login(email string, password string) (*internal.TokenPair, *model.UserResponse, error) {
+	var user model.User
+
+	query := `SELECT firstname,lastname,email,createdat,updated FROM users where email = $1`
+
+	err := u.db.QueryRow(query, email).Scan(
+		&user.ID,
+		&user.Firstname,
+		&user.Lastname,
+		&user.Email,
+		&user.Password,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil, err
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to fetch user: %v", err)
+	}
+
+	if err := user.ComparePassword(password); err != nil {
+		return nil, nil, ErrInvalidPassword
+	}
+	return nil, nil, nil
+	/*
+		//generate tokens
+		tokens, err := internal.generateTokenPair(
+			user.ID,
+			user.Email,
+			h.cfg.JWTSecret,
+			h.cfg.RefreshSecret,
+			time.Hour*24,
+			time.Hour*24*7,
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error generating tokens: %v", err)
+		}
+
+		return tokens, &model.UserResponse{
+			ID:        user.ID,
+			Email:     user.Email,
+			Firstname: user.Firstname,
+			Lastname:  user.Lastname,
+			CreatedAt: user.CreatedAt,
+		}, nil
+	*/
 }
