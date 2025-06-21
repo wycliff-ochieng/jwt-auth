@@ -3,12 +3,12 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	//"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
-	ID        uuid.UUID
+	ID        int64
 	Firstname string
 	Lastname  string
 	Email     string
@@ -17,7 +17,7 @@ type User struct {
 	UpdatedAt time.Time
 }
 
-func NewUser(firstname, lastname, email, password string) (*User, error) {
+func NewUser(id int64, firstname, lastname, email, password string) (*User, error) {
 
 	harshedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -26,7 +26,7 @@ func NewUser(firstname, lastname, email, password string) (*User, error) {
 
 	now := time.Now()
 	return &User{
-		ID:        uuid.New(),
+		ID:        id,
 		Firstname: firstname,
 		Lastname:  lastname,
 		Email:     email,
