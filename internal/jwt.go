@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	//"github.com/google/uuid"
 )
 
 type Claims struct {
-	ID    uuid.UUID
+	ID    int64
 	Email string
 	jwt.RegisteredClaims
 }
@@ -19,9 +19,10 @@ type TokenPair struct {
 	RefreshToken string `json:"refresjtoken"`
 }
 
-var secret = []byte("mydogsnameisrufus")
+var JwtSecret = []byte("mydogsnameisrufus")
+var RefreshSecret = []byte("myotherdogiscalledbuckeye")
 
-func generateToken(ID uuid.UUID, email string, secret string, expiry time.Duration) (string, error) {
+func GenerateToken(ID int64, email string, JwtSsecret string, expiry time.Duration) (string, error) {
 	now := time.Now()
 	claims := &Claims{
 		ID:    ID,
@@ -35,17 +36,17 @@ func generateToken(ID uuid.UUID, email string, secret string, expiry time.Durati
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	fmt.Println(token)
-	return token.SignedString([]byte(secret))
+	return token.SignedString([]byte(JwtSecret))
 }
 
 //validating the token
 
-func validateToken(tokenString string) (*Claims, error) {
+func ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(secret), nil
+		return []byte(JwtSecret), nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error parsing token:%v", err)
@@ -56,21 +57,14 @@ func validateToken(tokenString string) (*Claims, error) {
 	return nil, fmt.Errorf("invalid token")
 }
 
-func generateTokenPair(ID uuid.UUID, email, jwtSecret, refreshSecret string, jwtExpiry, refreshExpiry time.Duration) (*TokenPair, error) {
+func GenerateTokenPair(ID int64, email, JwtSecret, RefreshSecret string, jwtExpiry, refreshExpiry time.Duration) (*TokenPair, error) {
 
-	fmt.Printf("Generating tokens for user:\n")
-	fmt.Printf("Email: %s\n", email)
-	fmt.Printf("JWT Secret: %s\n", jwtSecret)
-	fmt.Printf("JWT Expiry: %v\n", jwtExpiry)
-	fmt.Printf("Refresh Secret: %s\n", refreshSecret)
-	fmt.Printf("Refresh Expiry: %v\n", refreshExpiry)
-
-	accesstoken, err := generateToken(ID, email, jwtSecret, jwtExpiry)
+	accesstoken, err := GenerateToken(ID, email, JwtSecret, jwtExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Access Token %v", err)
 	}
 
-	refreshtoken, err := generateToken(ID, email, refreshSecret, refreshExpiry)
+	refreshtoken, err := GenerateToken(ID, email, RefreshSecret, refreshExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Refresh Token %v", err)
 	}
@@ -79,4 +73,11 @@ func generateTokenPair(ID uuid.UUID, email, jwtSecret, refreshSecret string, jwt
 		AccessToken:  accesstoken,
 		RefreshToken: refreshtoken,
 	}, nil
+}
+
+func ExtractBearerToken(authHeader string) string {
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer" {
+		return authHeader[7:]
+	}
+	return ""
 }
