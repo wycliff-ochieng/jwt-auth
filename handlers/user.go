@@ -15,6 +15,7 @@ type AuthHandler struct {
 }
 
 type RegisterReq struct {
+	ID        int64
 	Firstname string `json:"firstname"`
 	Lastname  string `json:"lastname"`
 	Email     string `json:"email"`
@@ -51,7 +52,7 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//register user
-	user, err := h.UServ.Register(req.Firstname, req.Lastname, req.Email, req.Password)
+	user, err := h.UServ.Register(req.ID, req.Firstname, req.Lastname, req.Email, req.Password)
 	if err == service.ErrEmailExists {
 		http.Error(w, "email already exists ", http.StatusConflict)
 		return
@@ -85,10 +86,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	tokens, user, err := h.UServ.Login(req.Email, req.Password)
 	if err == service.ErrInvalidPassword || err == service.ErrUserNotFound {
 		http.Error(w, "failed to be logged in", http.StatusUnauthorized)
+		h.l.Printf("Why fail: %v", err)
 		return
 	}
 	if err != nil {
 		http.Error(w, "something unexpected occurred", http.StatusInternalServerError)
+		h.l.Printf("Login error : %v", err)
 		return
 	}
 
