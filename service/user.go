@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/wycliff-ochieng/database"
 
@@ -25,7 +26,7 @@ func NewUserService(db database.DBInterface) UserService {
 	return UserService{db: db}
 }
 
-func (u UserService) Register(firstname string, lastname string, email string, password string) (*model.UserResponse, error) {
+func (u UserService) Register(id int64, firstname string, lastname string, email string, password string) (*model.UserResponse, error) {
 	//check if email exists
 	var exists bool
 
@@ -38,7 +39,7 @@ func (u UserService) Register(firstname string, lastname string, email string, p
 	}
 
 	//creating user
-	user, err := model.NewUser(firstname, lastname, email, password)
+	user, err := model.NewUser(id, firstname, lastname, email, password)
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +62,10 @@ func (u UserService) Register(firstname string, lastname string, email string, p
 func (u *UserService) Login(email string, password string) (*internal.TokenPair, *model.UserResponse, error) {
 	var user model.User
 
-	query := `SELECT firstname,lastname,email,createdat,updated FROM users where email = $1`
+	query := `SELECT firstname,lastname,email,password,createdat,updatedat FROM users where email = $1`
 
 	err := u.db.QueryRow(query, email).Scan(
-		&user.ID,
+		//&user.ID,
 		&user.Firstname,
 		&user.Lastname,
 		&user.Email,
@@ -82,27 +83,29 @@ func (u *UserService) Login(email string, password string) (*internal.TokenPair,
 	if err := user.ComparePassword(password); err != nil {
 		return nil, nil, ErrInvalidPassword
 	}
-	return nil, nil, nil
-	/*
-		//generate tokens
-		tokens, err := internal.generateTokenPair(
-			user.ID,
-			user.Email,
-			h.cfg.JWTSecret,
-			h.cfg.RefreshSecret,
-			time.Hour*24,
-			time.Hour*24*7,
-		)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error generating tokens: %v", err)
-		}
+	//return nil, nil, nil
 
-		return tokens, &model.UserResponse{
-			ID:        user.ID,
-			Email:     user.Email,
-			Firstname: user.Firstname,
-			Lastname:  user.Lastname,
-			CreatedAt: user.CreatedAt,
-		}, nil
-	*/
+	//var jwtSecret := []byte("mydogsnameisrufus")
+	//var refreshSecret := []byte("myotherdogiscalledbuckeye")
+
+	//generate tokens
+	tokens, err := internal.GenerateTokenPair(
+		user.ID,
+		user.Email,
+		string(internal.JwtSecret),
+		string(internal.RefreshSecret),
+		time.Hour*24,
+		time.Hour*24*7,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating tokens: %v", err)
+	}
+
+	return tokens, &model.UserResponse{
+		Email:     user.Email,
+		Firstname: user.Firstname,
+		Lastname:  user.Lastname,
+		CreatedAt: user.CreatedAt,
+	}, nil
+
 }
