@@ -15,7 +15,7 @@ type AuthHandler struct {
 }
 
 type RegisterReq struct {
-	ID        int64
+	ID        int64  `json:"id"`
 	Firstname string `json:"firstname"`
 	Lastname  string `json:"lastname"`
 	Email     string `json:"email"`
